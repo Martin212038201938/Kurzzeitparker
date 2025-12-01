@@ -15,10 +15,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.ALWAYSDATA_SSH_KEY }}
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Add host to known_hosts
         run: |
@@ -26,8 +24,10 @@ jobs:
           ssh-keyscan -H ssh-y-b.alwaysdata.net >> ~/.ssh/known_hosts
 
       - name: Deploy to alwaysdata
+        env:
+          SSHPASS: ${{ secrets.ALWAYSDATA_PASSWORD }}
         run: |
-          ssh y-b@ssh-y-b.alwaysdata.net << 'ENDSSH'
+          sshpass -e ssh -o StrictHostKeyChecking=no y-b_ssh@ssh-y-b.alwaysdata.net << 'ENDSSH'
             set -e
 
             # Navigate to project directory
