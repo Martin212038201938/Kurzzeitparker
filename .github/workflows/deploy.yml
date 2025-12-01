@@ -29,8 +29,8 @@ jobs:
 
       - name: Deploy to alwaysdata
         run: |
-            ssh -i ~/.ssh/deploy_key y-b_kzp@ssh-y-b.alwaysdata.net << 'ENDSSH'
-            set -e
+          ssh -i ~/.ssh/deploy_key y-b_kzp@ssh-y-b.alwaysdata.net << 'ENDSSH'            set -e
+                    set -e
 
             # Navigate to project directory
             cd ~/kurzzeitparker
