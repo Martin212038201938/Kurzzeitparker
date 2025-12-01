@@ -2,6 +2,8 @@
 
 Temporäres Datei-Sharing im macOS-Stil - ohne Login, mit automatischer Löschung nach 7 Tagen.
 
+**Live**: https://kurzzeitparker.yellow-boat.org
+
 ## Features
 
 - **Ordnerverwaltung**: Erstelle Ordner mit kryptischen Links (20-27 Zeichen)
@@ -13,66 +15,76 @@ Temporäres Datei-Sharing im macOS-Stil - ohne Login, mit automatischer Löschun
 - **ZIP-Download**: Gesamten Ordner als ZIP herunterladen
 - **6 GB Limit**: Maximale Speichergrenze pro Upload
 
-## Installation
-
-1. Dateien auf einen PHP-fähigen Webserver (z.B. alwaysdata) hochladen
-2. Seed-Daten erstellen: `php seed.php`
-3. Cron-Job für automatische Löschung einrichten:
-   ```
-   0 3 * * * php /pfad/zu/cron.php
-   ```
-
 ## Dateistruktur
 
 ```
 Kurzzeitparker/
-├── index.php          # Frontend (HTML/CSS/JS)
-├── api.php            # Backend API
-├── seed.php           # Seed-Daten erstellen
-├── cron.php           # Automatische Löschung
-├── .htaccess          # Apache-Konfiguration
-├── data/              # JSON-Datenbank
-│   ├── folders.json
-│   ├── files.json
-│   └── comments.json
-└── uploads/           # Hochgeladene Dateien
+├── index.html              # Frontend (HTML/CSS/JS)
+├── backend/
+│   ├── wsgi.py            # Flask WSGI Application
+│   ├── requirements.txt   # Python Dependencies
+│   ├── data/              # JSON-Datenbank
+│   │   ├── folders.json
+│   │   ├── files.json
+│   │   └── comments.json
+│   └── uploads/           # Hochgeladene Dateien
+└── README.md
 ```
+
+## Installation (alwaysdata)
+
+1. Repository klonen
+2. Python virtualenv erstellen und aktivieren
+3. Dependencies installieren:
+   ```bash
+   pip install -r backend/requirements.txt
+   ```
+4. WSGI-Anwendung konfigurieren:
+   - Type: Python WSGI
+   - Application path: `/home/user/kurzzeitparker/backend/wsgi.py:application`
+   - Working directory: `/home/user/kurzzeitparker/backend`
+
+5. Seed-Daten erstellen (optional):
+   ```bash
+   curl -X POST https://kurzzeitparker.yellow-boat.org/api/seed
+   ```
+
+6. Cron-Job für automatische Löschung:
+   ```bash
+   curl -X POST https://kurzzeitparker.yellow-boat.org/api/cleanup
+   ```
 
 ## API Endpoints
 
-| Action | Method | Parameter |
-|--------|--------|-----------|
-| `create_folder` | POST | name |
-| `get_folder` | GET | link |
-| `upload` | POST | folder_id, file |
-| `delete_file` | POST | file_id |
-| `toggle_permanent` | POST | file_id |
-| `get_comments` | GET | item_id |
-| `add_comment` | POST | item_id, text |
-| `download` | GET | file_id |
-| `download_zip` | GET | folder_id |
-| `poll` | GET | folder_id |
+| Endpoint | Method | Parameter | Beschreibung |
+|----------|--------|-----------|--------------|
+| `/api/create_folder` | POST | name | Neuen Ordner erstellen |
+| `/api/get_folder` | GET | link | Ordner abrufen |
+| `/api/upload` | POST | folder_id, file | Datei hochladen |
+| `/api/delete_file` | POST | file_id | Datei löschen |
+| `/api/toggle_permanent` | POST | file_id | Dauerhaft-Flag umschalten |
+| `/api/get_comments` | GET | item_id | Kommentare abrufen |
+| `/api/add_comment` | POST | item_id, text | Kommentar hinzufügen |
+| `/api/download` | GET | file_id | Datei herunterladen |
+| `/api/download_zip` | GET | folder_id | Ordner als ZIP |
+| `/api/poll` | GET | folder_id | Live-Updates |
+| `/api/seed` | POST | - | Seed-Daten erstellen |
+| `/api/cleanup` | POST | - | Abgelaufene Dateien löschen |
 
 ## Beispiel-Link
 
-Nach dem Ausführen von `seed.php`:
+Nach dem Erstellen von Seed-Daten:
 ```
-index.php?f=BeispielOrdnerXYZ2024abc
+https://kurzzeitparker.yellow-boat.org/?f=BeispielOrdnerXYZ2024abc
 ```
 
 ## Technologie
 
-- **Backend**: PHP 7.4+
+- **Backend**: Python 3.11 + Flask
 - **Frontend**: Vanilla JavaScript, CSS3
 - **Datenbank**: JSON-Dateien
+- **Hosting**: alwaysdata (WSGI)
 - **Design**: macOS-inspiriert, hell und bunt
-
-## Sicherheit
-
-- Keine PHP-Ausführung im uploads-Ordner
-- Kein direkter Zugriff auf data-Ordner
-- XSS-Schutz durch Content-Disposition Header
-- Kryptische Links für Ordner
 
 ## Lizenz
 
