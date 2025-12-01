@@ -27,7 +27,7 @@ jobs:
 
       - name: Deploy to alwaysdata
         run: |
-          ssh y-b_ssh@ssh-y-b.alwaysdata.net << 'ENDSSH'
+          ssh y-b_kzp@ssh-y-b.alwaysdata.net << 'ENDSSH'
             set -e
 
             # Navigate to project directory
