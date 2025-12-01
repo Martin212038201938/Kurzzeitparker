@@ -1,11 +1,22 @@
 # Kurzzeitparker .gitignore
 
-# Data files (JSON databases)
-data/*.json
+# Backend data files (JSON databases)
+backend/data/*.json
 
 # Uploaded files
-uploads/*
-!uploads/.htaccess
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
 
 # Logs
 *.log

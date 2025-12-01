@@ -84,6 +84,7 @@
             background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .landing-subtitle {
@@ -942,6 +943,9 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
+        // API Base URL
+        const API_BASE = '/api';
+
         // App State
         let currentFolder = null;
         let currentFolderLink = null;
@@ -993,19 +997,16 @@
 
         // API Functions
         async function createFolder(name) {
-            const formData = new FormData();
-            formData.append('action', 'create_folder');
-            formData.append('name', name);
-
-            const response = await fetch('api.php', {
+            const response = await fetch(`${API_BASE}/create_folder`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
             });
             return response.json();
         }
 
         async function getFolder(link) {
-            const response = await fetch(`api.php?action=get_folder&link=${encodeURIComponent(link)}`);
+            const response = await fetch(`${API_BASE}/get_folder?link=${encodeURIComponent(link)}`);
             return response.json();
         }
 
@@ -1013,7 +1014,6 @@
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 const formData = new FormData();
-                formData.append('action', 'upload');
                 formData.append('folder_id', folderId);
                 formData.append('file', file);
                 formData.append('relative_path', relativePath);
@@ -1026,62 +1026,61 @@
 
                 xhr.onload = () => {
                     if (xhr.status === 200) {
-                        resolve(JSON.parse(xhr.responseText));
+                        try {
+                            resolve(JSON.parse(xhr.responseText));
+                        } catch (e) {
+                            reject(new Error('Invalid response'));
+                        }
                     } else {
-                        reject(new Error('Upload failed'));
+                        try {
+                            const err = JSON.parse(xhr.responseText);
+                            reject(new Error(err.error || 'Upload failed'));
+                        } catch (e) {
+                            reject(new Error('Upload failed'));
+                        }
                     }
                 };
 
                 xhr.onerror = () => reject(new Error('Upload failed'));
-                xhr.open('POST', 'api.php');
+                xhr.open('POST', `${API_BASE}/upload`);
                 xhr.send(formData);
             });
         }
 
         async function deleteFile(fileId) {
-            const formData = new FormData();
-            formData.append('action', 'delete_file');
-            formData.append('file_id', fileId);
-
-            const response = await fetch('api.php', {
+            const response = await fetch(`${API_BASE}/delete_file`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id: fileId })
             });
             return response.json();
         }
 
         async function togglePermanent(fileId) {
-            const formData = new FormData();
-            formData.append('action', 'toggle_permanent');
-            formData.append('file_id', fileId);
-
-            const response = await fetch('api.php', {
+            const response = await fetch(`${API_BASE}/toggle_permanent`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_id: fileId })
             });
             return response.json();
         }
 
         async function getComments(itemId) {
-            const response = await fetch(`api.php?action=get_comments&item_id=${encodeURIComponent(itemId)}`);
+            const response = await fetch(`${API_BASE}/get_comments?item_id=${encodeURIComponent(itemId)}`);
             return response.json();
         }
 
         async function addComment(itemId, text) {
-            const formData = new FormData();
-            formData.append('action', 'add_comment');
-            formData.append('item_id', itemId);
-            formData.append('text', text);
-
-            const response = await fetch('api.php', {
+            const response = await fetch(`${API_BASE}/add_comment`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_id: itemId, text })
             });
             return response.json();
         }
 
         async function pollFolder(folderId) {
-            const response = await fetch(`api.php?action=poll&folder_id=${encodeURIComponent(folderId)}`);
+            const response = await fetch(`${API_BASE}/poll?folder_id=${encodeURIComponent(folderId)}`);
             return response.json();
         }
 
@@ -1128,7 +1127,7 @@
             grid.querySelectorAll('.download-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const fileId = btn.dataset.fileId;
-                    window.location.href = `api.php?action=download&file_id=${fileId}`;
+                    window.location.href = `${API_BASE}/download?file_id=${fileId}`;
                 });
             });
 
@@ -1258,7 +1257,7 @@
             progressContainer.classList.add('active');
 
             let uploadedBytes = 0;
-            let uploadedFiles = 0;
+            let uploadedFilesCount = 0;
             const startTime = Date.now();
 
             // Render file list
@@ -1296,22 +1295,22 @@
                     });
 
                     uploadedBytes += file.size;
-                    uploadedFiles++;
+                    uploadedFilesCount++;
 
-                    uploadedCount.textContent = `${uploadedFiles}/${fileArray.length} Dateien`;
+                    uploadedCount.textContent = `${uploadedFilesCount}/${fileArray.length} Dateien`;
                     uploadedSize.textContent = `${formatSize(uploadedBytes)} / ${formatSize(totalSize)}`;
                     fileProgress.style.width = '100%';
                     fileProgress.style.background = 'var(--accent-green)';
                 } catch (error) {
                     fileProgress.style.background = 'var(--accent-red)';
-                    showToast(`Fehler beim Upload von ${file.name}`, 'error');
+                    showToast(`Fehler beim Upload von ${file.name}: ${error.message}`, 'error');
                 }
             }
 
             setTimeout(() => {
                 progressContainer.classList.remove('active');
                 refreshFolder();
-                showToast(`${uploadedFiles} Datei(en) hochgeladen`);
+                showToast(`${uploadedFilesCount} Datei(en) hochgeladen`);
             }, 1000);
         }
 
@@ -1425,7 +1424,7 @@
             // Download all button
             document.getElementById('downloadAllBtn').addEventListener('click', () => {
                 if (currentFolder) {
-                    window.location.href = `api.php?action=download_zip&folder_id=${currentFolder.id}`;
+                    window.location.href = `${API_BASE}/download_zip?folder_id=${currentFolder.id}`;
                 }
             });
 
